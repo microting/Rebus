@@ -43,14 +43,10 @@ public class TestSyncBus : FixtureBase
             bus.SendLocal("ey det virker");
         });
 
-            if (Environment.Version.Major != 5) // Setting ApartmentState is not supported in Net 5.0
+            // Setting ApartmentState is not supported in Net 5.0 and on Linux/OSX
+            if (Environment.Version.Major !>= 5 && !(RuntimeInformation.IsOSPlatform(OSPlatform.Linux)))
             {
                 thread.SetApartmentState(ApartmentState.STA);
-            }
-            if (Environment.Version.Major != 5) // Setting ApartmentState is not supported in Net 5.0
-            {
-                Console.WriteLine($"[DBG] Current Environment is {Environment.Version}");
-                // This is completely legit. On some platforms SetApartmentState is not supported.
             }
 
             thread.Start();
