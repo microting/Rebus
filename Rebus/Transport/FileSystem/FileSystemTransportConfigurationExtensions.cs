@@ -43,8 +43,8 @@ public static class FileSystemTransportConfigurationExtensions
     {
         if (baseDirectory == null) throw new ArgumentNullException(nameof(baseDirectory));
 
-        configurer.Register(context => new FileSystemTransport(baseDirectory, null, new FileSystemTransportOptions(), context.Get<IRebusTime>()));
-            
-        OneWayClientBackdoor.ConfigureOneWayClient(configurer);
+            configurer.Register(context => new FileSystemTransport(baseDirectory, null, new FileSystemTransportOptions(), context.Get<IRebusTime>()));
+            OneWayClientBackdoor.ConfigureOneWayClient(configurer);
+        }
     }
 }

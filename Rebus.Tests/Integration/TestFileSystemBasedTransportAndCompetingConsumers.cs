@@ -65,10 +65,9 @@ public class TestFileSystemBasedTransportAndCompetingConsumers : FixtureBase
             await client.Send(message);
         }
 
-        await messageCounts.WaitUntil(d => d.Count >= messageCount, timeoutSeconds: 10);
-            
-        // wait 1 extra second for unexpected messages to arrive...
-        await Task.Delay(TimeSpan.FromSeconds(1));
+            await messageCounts.WaitUntil(d => d.Count >= messageCount, timeoutSeconds: 10);
+            // wait 1 extra second for unexpected messages to arrive...
+            await Task.Delay(TimeSpan.FromSeconds(1));
 
         Assert.That(messages.OrderBy(m => m), Is.EqualTo(messageCounts.Keys.OrderBy(m => m)));
         Assert.That(messageCounts.All(c => c.Value == 1), Is.True, $@"Not all message counts were exactly 0:
