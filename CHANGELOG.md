@@ -486,7 +486,7 @@
 * Updated SimpleInjector dependency to 3.0.1
 * Added saga auditing mechanism that can output mutations to the log
 * Added file system transport
-* Updated Azure Service Bus dependency to 3.0.1 
+* Updated Azure Service Bus dependency to 3.0.1
 * Updated Azure Storage dep to 5.0.0
 
 ## 0.98.1
@@ -1069,6 +1069,9 @@
 * Add serializer implementation for System.Text.Json, available via `.Serialization(s => s.UseSystemJson())` - thanks [mathiasnohall]
 
 
+
+## 7.0.0-b1
+* Remove .NET 4.5 and other unnecessary targets
 
 ---
 

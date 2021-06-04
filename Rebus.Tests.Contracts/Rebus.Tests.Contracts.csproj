@@ -5,12 +5,12 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Rebus.Tests.Contracts</RootNamespace>
     <AssemblyName>Rebus.Tests.Contracts</AssemblyName>
-    <TargetFrameworks>net45;net46;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFramework>net5.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Authors>mookid8000</Authors>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://rebus.fm/what-is-rebus/</PackageProjectUrl>
-    <Copyright>Copyright 2012-2019</Copyright>
+    <Copyright>Copyright 2012</Copyright>
     <PackageTags>rebus tests contracts</PackageTags>
     <PackageIconUrl></PackageIconUrl>
     <PackageDescription>Contains contract tests for Rebus services - valuable, if you e.g. want to implement your own Rebus transport, subscription storage, etc.</PackageDescription>
@@ -18,6 +18,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>little_rebusbus2_copy-500x500.png</PackageIcon>
+    <PackageId>Microting.Rebus.Tests.Contracts</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -48,12 +49,7 @@
     <ProjectReference Include="..\Rebus\Rebus.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
-    <PackageReference Include="NUnit" Version="3.12.0" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' OR '$(TargetFramework)' == 'net46'">
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
   </ItemGroup>
 </Project>
