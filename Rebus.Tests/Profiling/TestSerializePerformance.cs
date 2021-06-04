@@ -1,5 +1,4 @@
-﻿#if NETCOREAPP
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -118,4 +117,3 @@ Stats:
         }
     }
 }
-#endif

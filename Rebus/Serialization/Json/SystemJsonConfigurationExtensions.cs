@@ -1,5 +1,4 @@
-﻿#if NETSTANDARD
-using System;
+﻿using System;
 using System.Text;
 using Newtonsoft.Json;
 using Rebus.Config;
@@ -28,7 +27,7 @@ namespace Rebus.Serialization.Json
 
 
         /// <summary>
-        /// Configures Rebus to use .NET System.Text.Json to serialize messages, using the specified <see cref="JsonSerializerOptions"/> and 
+        /// Configures Rebus to use .NET System.Text.Json to serialize messages, using the specified <see cref="JsonSerializerOptions"/> and
         /// This allows you to customize almost every aspect of how messages are actually serialized/deserialized.
         /// </summary>
         public static void UseSystemJson(this StandardConfigurer<ISerializer> configurer, JsonSerializerOptions settings, Encoding encoding = null)
@@ -46,4 +45,3 @@ namespace Rebus.Serialization.Json
         }
     }
 }
-#endif
