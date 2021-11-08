@@ -2,7 +2,7 @@ name: .NET Ubuntu
 
 on:
   push:
-    branches: [ master, release/7 ]
+    branches: [ master, release/7, net60 ]
     paths-ignore:
     - '**.md'
     - '.github/**'
@@ -26,6 +26,11 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0'
+        include-prerelease: true
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
