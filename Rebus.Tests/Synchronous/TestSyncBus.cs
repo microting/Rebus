@@ -44,7 +44,7 @@ namespace Rebus.Tests.Synchronous
             });
 
             // Setting ApartmentState is not supported in Net 5.0 and on Linux/OSX
-            if (Environment.Version.Major !>= 5 && !(RuntimeInformation.IsOSPlatform(OSPlatform.Linux)))
+            if (Environment.Version.Major !>= 5 && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 thread.SetApartmentState(ApartmentState.STA);
             }

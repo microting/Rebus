@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Rebus.Logging;
 
@@ -23,10 +24,13 @@ namespace Rebus.Persistence.FileSystem
                 try
                 {
                     _fileStream = new FileStream(pathToLock, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
-                    
+
                     // Oh and there's no async version!
-                    _fileStream.Lock(0, 1);
-                    
+                    if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        _fileStream.Lock(0, 1);
+                    }
+
                     success = true;
                 }
                 catch (IOException)
@@ -74,7 +78,10 @@ namespace Rebus.Persistence.FileSystem
 
             try
             {
-                _fileStream.Unlock(0, 1);
+                if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    _fileStream.Unlock(0, 1);
+                }
                 _fileStream.Dispose();
             }
             finally
