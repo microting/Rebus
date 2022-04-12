@@ -16,24 +16,24 @@ using Rebus.Tests.Extensions;
 using Rebus.Transport.FileSystem;
 #pragma warning disable 1998
 
-namespace Rebus.Tests.Integration
+namespace Rebus.Tests.Integration;
+
+[TestFixture]
+public class TestFileSystemBasedTransportAndCompetingConsumers : FixtureBase
 {
-    [TestFixture]
-    public class TestFileSystemBasedTransportAndCompetingConsumers : FixtureBase
+    [Test]
+    public void VerifyAssumptionRegardingFileLocks()
     {
-        [Test]
-        public void VerifyAssumptionRegardingFileLocks()
-        {
-            var tempFilePath = GetTempFilePath();
+        var tempFilePath = GetTempFilePath();
 
-            Assert.That(File.Exists(tempFilePath), Is.True, $"Weird - the file {tempFilePath} could not be found");
+        Assert.That(File.Exists(tempFilePath), Is.True, $"Weird - the file {tempFilePath} could not be found");
 
-            var fileStreamWithLock = Using(File.Open(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Delete));
+        var fileStreamWithLock = Using(File.Open(tempFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Delete));
 
-            File.Delete(tempFilePath);
+        File.Delete(tempFilePath);
 
 
-        }
+    }
 
         [TestCase(10, 1)]
         [TestCase(10, 2)]
@@ -49,44 +49,44 @@ namespace Rebus.Tests.Integration
             }
             var tempDirectory = NewTempDirectory();
 
-            var client = Configure.With(Using(new BuiltinHandlerActivator()))
-                .Logging(l => l.Console(LogLevel.Info))
-                .Transport(t => t.UseFileSystemAsOneWayClient(tempDirectory))
-                .Routing(r => r.TypeBased().Map<string>("consumer"))
-                .Start();
+        var client = Configure.With(Using(new BuiltinHandlerActivator()))
+            .Logging(l => l.Console(LogLevel.Info))
+            .Transport(t => t.UseFileSystemAsOneWayClient(tempDirectory))
+            .Routing(r => r.TypeBased().Map<string>("consumer"))
+            .Start();
 
-            var messages = new HashSet<string>(Enumerable.Range(0, messageCount).Select(o => $"THIS IS MESSAGE {o}"));
-            var messageCounts = new ConcurrentDictionary<string, int>();
+        var messages = new HashSet<string>(Enumerable.Range(0, messageCount).Select(o => $"THIS IS MESSAGE {o}"));
+        var messageCounts = new ConcurrentDictionary<string, int>();
 
-            consumers.Times(() => StartConsumer(messageCounts, tempDirectory));
+        consumers.Times(() => StartConsumer(messageCounts, tempDirectory));
 
-            foreach (var message in messages)
-            {
-                await client.Send(message);
-            }
+        foreach (var message in messages)
+        {
+            await client.Send(message);
+        }
 
-            await messageCounts.WaitUntil(d => d.Count >= messageCount, timeoutSeconds: 10);
-            // wait 1 extra second for unexpected messages to arrive...
-            await Task.Delay(TimeSpan.FromSeconds(1));
+        await messageCounts.WaitUntil(d => d.Count >= messageCount, timeoutSeconds: 10);
 
-            Assert.That(messages.OrderBy(m => m), Is.EqualTo(messageCounts.Keys.OrderBy(m => m)));
-            Assert.That(messageCounts.All(c => c.Value == 1), Is.True, $@"Not all message counts were exactly 0:
+        // wait 1 extra second for unexpected messages to arrive...
+        await Task.Delay(TimeSpan.FromSeconds(1));
+
+        Assert.That(messages.OrderBy(m => m), Is.EqualTo(messageCounts.Keys.OrderBy(m => m)));
+        Assert.That(messageCounts.All(c => c.Value == 1), Is.True, $@"Not all message counts were exactly 0:
 
 {string.Join(Environment.NewLine, messageCounts.Where(kvp => kvp.Value > 1).Select(kvp => $"    {kvp.Key}: {kvp.Value}"))}
 ");
 
-        }
+    }
 
-        void StartConsumer(ConcurrentDictionary<string, int> messageCounts, string tempDirectory)
-        {
-            var activator = Using(new BuiltinHandlerActivator());
+    void StartConsumer(ConcurrentDictionary<string, int> messageCounts, string tempDirectory)
+    {
+        var activator = Using(new BuiltinHandlerActivator());
 
-            activator.Handle<string>(async message => messageCounts.AddOrUpdate(message, 1, (key, value) => value + 1));
+        activator.Handle<string>(async message => messageCounts.AddOrUpdate(message, 1, (key, value) => value + 1));
 
-            Configure.With(activator)
-                .Logging(l => l.Console(LogLevel.Info))
-                .Transport(t => t.UseFileSystem(tempDirectory, "consumer").Prefetch(5))
-                .Start();
-        }
+        Configure.With(activator)
+            .Logging(l => l.Console(LogLevel.Info))
+            .Transport(t => t.UseFileSystem(tempDirectory, "consumer").Prefetch(5))
+            .Start();
     }
 }
