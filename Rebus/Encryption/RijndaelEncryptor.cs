@@ -2,90 +2,95 @@
 using System.IO;
 using System.Security.Cryptography;
 
-namespace Rebus.Encryption
+namespace Rebus.Encryption;
+
+/// <summary>
+/// Helps with encrypting/decrypting byte arrays, using the <see cref="RijndaelManaged"/> algorithm
+/// </summary>
+class RijndaelEncryptor : IEncryptor
 {
+    readonly byte[] _key;
+
     /// <summary>
-    /// Helps with encrypting/decripting byte arrays, using the <see cref="RijndaelManaged"/> algorithm
+    /// Returns "rijndael" string
     /// </summary>
-    class RijndaelEncryptor : IEncryptor
+    public string ContentEncryptionValue => "rijndael";
+
+    /// <summary>
+    /// Creates the encryptor with the specified key - the key must be a valid, base64-encoded key
+    /// </summary>
+    /// <param name="key"></param>
+    public RijndaelEncryptor(string key)
     {
-        readonly byte[] _key;
-
-        /// <summary>
-        /// Returns "rijndael" string
-        /// </summary>
-        public string ContentEncryptionValue => "rijndael";
-
-        /// <summary>
-        /// Creates the encrptor with the specified key - the key must be a valid, base64-encoded key
-        /// </summary>
-        /// <param name="key"></param>
-        public RijndaelEncryptor(string key)
+        try
         {
-            try
-            {
-                _key = Convert.FromBase64String(key);
+            _key = Convert.FromBase64String(key);
 
-                using var rijndael = Aes.Create();
-                rijndael.Key = _key;
-            }
-            catch (Exception exception)
-            {
-                throw new ArgumentException(
-                    $@"Could not initialize the encryption algorithm with the specified key (not shown here for security reasons) - if you're unsure how to get a valid key, here's a newly generated key that you can use:
+            using var rijndael = new RijndaelManaged();
+
+            rijndael.Key = _key;
+        }
+        catch (Exception exception)
+        {
+            throw new ArgumentException(
+                $@"Could not initialize the encryption algorithm with the specified key (not shown here for security reasons) - if you're unsure how to get a valid key, here's a newly generated key that you can use:
 
     {GenerateNewKey()}
 
 I promise that the suggested key has been generated this instant - if you don't believe me, feel free to run the program again ;)", exception);
-            }
         }
+    }
 
-        static string GenerateNewKey()
-        {
-            using var rijndael = Aes.Create();
-            rijndael.GenerateKey();
+    static string GenerateNewKey()
+    {
+        using var rijndael = new RijndaelManaged();
 
-            return Convert.ToBase64String(rijndael.Key);
-        }
+        rijndael.GenerateKey();
 
-        /// <summary>
-        /// Encrypts the given array of bytes, using the configured key. Returns an <see cref="EncryptedData"/> containing the encrypted
-        /// bytes and the generated salt.
-        /// </summary>
-        public EncryptedData Encrypt(byte[] bytes)
-        {
-            using var rijndael = Aes.Create();
-            rijndael.GenerateIV();
-            rijndael.Key = _key;
+        return Convert.ToBase64String(rijndael.Key);
+    }
 
-            using var encryptor = rijndael.CreateEncryptor();
-            using var destination = new MemoryStream();
-            using var cryptoStream = new CryptoStream(destination, encryptor, CryptoStreamMode.Write);
-            cryptoStream.Write(bytes, 0, bytes.Length);
-            cryptoStream.FlushFinalBlock();
+    /// <summary>
+    /// Encrypts the given array of bytes, using the configured key. Returns an <see cref="EncryptedData"/> containing the encrypted
+    /// bytes and the generated salt.
+    /// </summary>
+    public EncryptedData Encrypt(byte[] bytes)
+    {
+        using var rijndael = new RijndaelManaged();
 
-            return new EncryptedData(destination.ToArray(), rijndael.IV);
-        }
+        rijndael.GenerateIV();
+        rijndael.Key = _key;
 
-        /// <summary>
-        /// Decrypts the given <see cref="EncryptedData"/> using the configured key.
-        /// </summary>
-        public byte[] Decrypt(EncryptedData encryptedData)
-        {
-            var iv = encryptedData.Iv;
-            var bytes = encryptedData.Bytes;
+        using var encryptor = rijndael.CreateEncryptor();
+        using var destination = new MemoryStream();
+        using var cryptoStream = new CryptoStream(destination, encryptor, CryptoStreamMode.Write);
 
-            using var rijndael = Aes.Create();
-            rijndael.IV = iv;
-            rijndael.Key = _key;
+        cryptoStream.Write(bytes, 0, bytes.Length);
+        cryptoStream.FlushFinalBlock();
 
-            using var decryptor = rijndael.CreateDecryptor();
-            using var destination = new MemoryStream();
-            using var cryptoStream = new CryptoStream(destination, decryptor, CryptoStreamMode.Write);
-            cryptoStream.Write(bytes, 0, bytes.Length);
-            cryptoStream.FlushFinalBlock();
+        return new EncryptedData(destination.ToArray(), rijndael.IV);
+    }
 
-            return destination.ToArray();
-        }
+    /// <summary>
+    /// Decrypts the given <see cref="EncryptedData"/> using the configured key.
+    /// </summary>
+    public byte[] Decrypt(EncryptedData encryptedData)
+    {
+        var iv = encryptedData.Iv;
+        var bytes = encryptedData.Bytes;
+
+        using var rijndael = new RijndaelManaged();
+
+        rijndael.IV = iv;
+        rijndael.Key = _key;
+
+        using var decryptor = rijndael.CreateDecryptor();
+        using var destination = new MemoryStream();
+        using var cryptoStream = new CryptoStream(destination, decryptor, CryptoStreamMode.Write);
+
+        cryptoStream.Write(bytes, 0, bytes.Length);
+        cryptoStream.FlushFinalBlock();
+
+        return destination.ToArray();
     }
 }

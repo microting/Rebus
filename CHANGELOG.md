@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 ## < 0.31.0
 * Made Rebus - BAM!1
@@ -1071,8 +1071,17 @@
 ## 6.6.1
 * Make it possible to set the `rbs2-senttime` header explicitly (i.e. it is no longer overwritten by the default headers step)
 
+<<<<<<< HEAD
 ## 7.0.0-b1
 * Remove .NET 4.5 and other unnecessary targets
+=======
+## 7.0.0
+* Change locking interface to be more generic - thanks [kendallb]
+* Only target .NET Standard 2.0
+* Change default JSON serializer to System.Text.Json (this is a BREAKING change! Please remember to `.Serializer(s => s.UseNewtonsoftJson()))` if you rely on e.g. inheritance and other advanced stuff
+* Add `Configure.OneWayClient()` API which can be used to configure one-way clients, because handlers - and thus also the handler activator - are irrelevant - thanks [riezebosch]
+* Fix typos in XML docs - thanks [torangel]
+>>>>>>> 1f92655bf0b45a563b7805ea800517deea526aae
 
 ---
 
@@ -1127,6 +1136,7 @@
 [poizan42]: https://github.com/poizan42
 [pruiz]: https://github.com/pruiz
 [puzsol]: https://github.com/puzsol
+[riezebosch]: https://github.com/riezebosch
 [runes83]: https://github.com/runes83
 [Rzpeg]: https://github.com/Rzpeg
 [seankearon]: https://github.com/seankearon
