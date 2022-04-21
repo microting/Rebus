@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -128,13 +129,42 @@ class JsonSerializer : ISerializer
         return new Message(headers, bodyObject);
     }
 
+    // Reverting this code, since it breaks assembly lookup for Type.GetType in net 5.0
+    // Type GetTypeOrNull(TransportMessage transportMessage)
+    // {
+    //     if (!transportMessage.Headers.TryGetValue(Headers.Type, out var typeName)) return null;
+    //
+    //     var type = _messageTypeNameConvention.GetType(typeName) ?? throw new FormatException($"Could not get .NET type named '{typeName}'");
+    //
+    //     return type;
+    // }
+
+    readonly ConcurrentDictionary<string, Type> TypeNameToTypeCache = new ConcurrentDictionary<string, Type>();
+
     Type GetTypeOrNull(TransportMessage transportMessage)
     {
         if (!transportMessage.Headers.TryGetValue(Headers.Type, out var typeName)) return null;
+        try
+        {
+            if (_settings.SerializationBinder == null)
+            {
+                return TypeNameToTypeCache.GetOrAdd(typeName, Type.GetType);
+            }
 
-        var type = _messageTypeNameConvention.GetType(typeName) ?? throw new FormatException($"Could not get .NET type named '{typeName}'");
+            var parts = typeName.Split(',');
+            if (parts.Length == 1)
+            {
+                return _settings.SerializationBinder.BindToType(null, parts[0]);
+            }
 
-        return type;
+            return _settings.SerializationBinder.BindToType(string.Join(", ", parts.Skip(1)), parts[0]);
+
+            //                throw new FormatException($"Type name '{typeName}' did not have the expected format consisting of either a type name (e.g. 'SomeType') or an assembly-qualified type name (e.g. 'SomeType, SomeAssembly')");
+        }
+        catch (Exception exception)
+        {
+            throw new FormatException($"Could not get .NET type named '{typeName}'", exception);
+        }
     }
 
     object Deserialize(string bodyString, Type type)
