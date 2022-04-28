@@ -1,15 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
+// ReSharper disable UnusedMember.Global
 
 namespace Rebus.Encryption;
 
 /// <summary>
 /// Helps with encrypting/decrypting byte arrays, using the <see cref="RijndaelManaged"/> algorithm
 /// </summary>
-class RijndaelEncryptor : IEncryptor
+class RijndaelEncryptor : IAsyncEncryptor
 {
-    readonly byte[] _key;
+    readonly IEncryptionKeyProvider _keyProvider;
 
     /// <summary>
     /// Returns "rijndael" string
@@ -19,76 +21,62 @@ class RijndaelEncryptor : IEncryptor
     /// <summary>
     /// Creates the encryptor with the specified key - the key must be a valid, base64-encoded key
     /// </summary>
-    /// <param name="key"></param>
     public RijndaelEncryptor(string key)
     {
-        try
-        {
-            _key = Convert.FromBase64String(key);
-
-            using var rijndael = new RijndaelManaged();
-
-            rijndael.Key = _key;
-        }
-        catch (Exception exception)
-        {
-            throw new ArgumentException(
-                $@"Could not initialize the encryption algorithm with the specified key (not shown here for security reasons) - if you're unsure how to get a valid key, here's a newly generated key that you can use:
-
-    {GenerateNewKey()}
-
-I promise that the suggested key has been generated this instant - if you don't believe me, feel free to run the program again ;)", exception);
-        }
+        if (key == null) throw new ArgumentNullException(nameof(key));
+        _keyProvider = new DefaultRijndaelEncryptionKeyProvider(key);
     }
 
-    static string GenerateNewKey()
+    /// <summary>
+    /// Creates the encryptor with an <see cref="IEncryptionKeyProvider"/> which provides current encryption key and lookup for keys based on id
+    /// </summary>
+    public RijndaelEncryptor(IEncryptionKeyProvider keyProvider)
     {
-        using var rijndael = new RijndaelManaged();
-
-        rijndael.GenerateKey();
-
-        return Convert.ToBase64String(rijndael.Key);
+        _keyProvider = keyProvider ?? throw new ArgumentNullException(nameof(keyProvider));
     }
 
     /// <summary>
     /// Encrypts the given array of bytes, using the configured key. Returns an <see cref="EncryptedData"/> containing the encrypted
     /// bytes and the generated salt.
     /// </summary>
-    public EncryptedData Encrypt(byte[] bytes)
+    public async Task<EncryptedData> Encrypt(byte[] bytes)
     {
+        var key = await _keyProvider.GetCurrentKey();
+
         using var rijndael = new RijndaelManaged();
 
         rijndael.GenerateIV();
-        rijndael.Key = _key;
+        rijndael.Key = key.Key;
 
         using var encryptor = rijndael.CreateEncryptor();
         using var destination = new MemoryStream();
         using var cryptoStream = new CryptoStream(destination, encryptor, CryptoStreamMode.Write);
 
-        cryptoStream.Write(bytes, 0, bytes.Length);
+        await cryptoStream.WriteAsync(bytes, 0, bytes.Length);
         cryptoStream.FlushFinalBlock();
 
-        return new EncryptedData(destination.ToArray(), rijndael.IV);
+        return new EncryptedData(destination.ToArray(), rijndael.IV, key.Identifier);
     }
 
     /// <summary>
     /// Decrypts the given <see cref="EncryptedData"/> using the configured key.
     /// </summary>
-    public byte[] Decrypt(EncryptedData encryptedData)
+    public async Task<byte[]> Decrypt(EncryptedData encryptedData)
     {
+        var key = await _keyProvider.GetSpecificKey(encryptedData.KeyId);
         var iv = encryptedData.Iv;
         var bytes = encryptedData.Bytes;
 
         using var rijndael = new RijndaelManaged();
 
         rijndael.IV = iv;
-        rijndael.Key = _key;
+        rijndael.Key = key.Key;
 
         using var decryptor = rijndael.CreateDecryptor();
         using var destination = new MemoryStream();
         using var cryptoStream = new CryptoStream(destination, decryptor, CryptoStreamMode.Write);
 
-        cryptoStream.Write(bytes, 0, bytes.Length);
+        await cryptoStream.WriteAsync(bytes, 0, bytes.Length);
         cryptoStream.FlushFinalBlock();
 
         return destination.ToArray();
