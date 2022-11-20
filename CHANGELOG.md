@@ -1071,13 +1071,19 @@
 ## 6.6.1
 * Make it possible to set the `rbs2-senttime` header explicitly (i.e. it is no longer overwritten by the default headers step)
 
-## 7.0.0
+## 6.6.5
+* Fix transaction context bug that would result in the completed flag being incorrectly set in situations where completion failed, which could lead to abort handlers not being called as they should
+
+## 7.0.0-rc6
 * Change locking interface to be more generic - thanks [kendallb]
 * Only target .NET Standard 2.0
 * Change default JSON serializer to System.Text.Json (this is a BREAKING change! Please remember to `.Serializer(s => s.UseNewtonsoftJson()))` if you rely on e.g. inheritance and other advanced stuff
 * Add `Configure.OneWayClient()` API which can be used to configure one-way clients, because handlers - and thus also the handler activator - are irrelevant - thanks [riezebosch]
 * Fix typos in XML docs - thanks [torangel]
 * Add extensibility point for fetching encryption keys from remote source, thus enabling centrally managed key rotation - thanks [torangel]
+* Make `IErrorTracker` async to enable future distributed error tracking scenarios
+* Add `ICorrelationErrorHandler` for handling cases where an incoming message matches a saga, but it cannot be correlated with an existing instance, and the message is not allowed to initiate a new saga. Enabled customization of how Rebus should behave.
+* Extend allowed version ranges for Newtonsoft.Json to 12.0.1 <= v < 14 and System.Text.Json to 5 <= v < 8
 
 ---
 
