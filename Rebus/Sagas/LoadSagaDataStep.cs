@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Exceptions;
@@ -35,7 +34,8 @@ public class LoadSagaDataStep : IIncomingStep
         RevisionPropertyName
     };
 
-    readonly SagaHelper _sagaHelper = new SagaHelper();
+    readonly ICorrelationErrorHandler _correlationErrorHandler;
+    readonly SagaHelper _sagaHelper = new();
     readonly ISagaStorage _sagaStorage;
     readonly Options _options;
     readonly ILog _log;
@@ -43,10 +43,11 @@ public class LoadSagaDataStep : IIncomingStep
     /// <summary>
     /// Constructs the step with the given saga storage
     /// </summary>
-    public LoadSagaDataStep([NotNull] ISagaStorage sagaStorage, [NotNull] IRebusLoggerFactory rebusLoggerFactory, [NotNull] Options options)
+    public LoadSagaDataStep(ISagaStorage sagaStorage, ICorrelationErrorHandler correlationErrorHandler, IRebusLoggerFactory rebusLoggerFactory, Options options)
     {
         if (rebusLoggerFactory == null) throw new ArgumentNullException(nameof(rebusLoggerFactory));
         _sagaStorage = sagaStorage ?? throw new ArgumentNullException(nameof(sagaStorage));
+        _correlationErrorHandler = correlationErrorHandler ?? throw new ArgumentNullException(nameof(correlationErrorHandler));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _log = rebusLoggerFactory.GetLogger<LoadSagaDataStep>();
     }
@@ -58,7 +59,7 @@ public class LoadSagaDataStep : IIncomingStep
     /// If no existing instance was found, but the saga implements <see cref="IAmInitiatedBy{TMessage}"/> for the current message,
     /// a new saga data instance will be created (and mounted). Otherwise, the message is ignored.
     /// </summary>
-    public async Task Process([NotNull] IncomingStepContext context, [NotNull] Func<Task> next)
+    public async Task Process(IncomingStepContext context, Func<Task> next)
     {
         // first we get the relevant handler invokers
         var handlerInvokersForSagas = context.Load<HandlerInvokers>()
@@ -76,8 +77,6 @@ public class LoadSagaDataStep : IIncomingStep
         var label = message.GetMessageLabel();
         var transactionContext = context.Load<ITransactionContext>();
 
-        var body = message.Body;
-
         // keep track of saga data instances in these two lists
         var loadedSagaData = new List<RelevantSagaInfo>();
         var newlyCreatedSagaData = new List<RelevantSagaInfo>();
@@ -85,7 +84,7 @@ public class LoadSagaDataStep : IIncomingStep
         // and then we process them
         foreach (var sagaInvoker in handlerInvokersForSagas)
         {
-            await TryMountSagaDataOnInvoker(sagaInvoker, body, label, loadedSagaData, newlyCreatedSagaData, transactionContext);
+            await TryMountSagaDataOnInvoker(sagaInvoker, message, label, loadedSagaData, newlyCreatedSagaData, transactionContext);
         }
 
         // invoke the rest of the pipeline (most likely also dispatching the incoming message to the now-ready saga handlers)
@@ -112,16 +111,17 @@ public class LoadSagaDataStep : IIncomingStep
         }
     }
 
-    async Task TryMountSagaDataOnInvoker(HandlerInvoker sagaInvoker, object body, string label, List<RelevantSagaInfo> loadedSagaData, List<RelevantSagaInfo> newlyCreatedSagaData, ITransactionContext transactionContext)
+    async Task TryMountSagaDataOnInvoker(HandlerInvoker sagaInvoker, Message message, string label, List<RelevantSagaInfo> loadedSagaData, List<RelevantSagaInfo> newlyCreatedSagaData, ITransactionContext transactionContext)
     {
         var foundExistingSagaData = false;
 
-        var correlationProperties = _sagaHelper.GetCorrelationProperties(body, sagaInvoker.Saga);
+        var body = message.Body;
+        var correlationProperties = _sagaHelper.GetCorrelationProperties(sagaInvoker.Saga);
         var correlationPropertiesRelevantForMessage = correlationProperties.ForMessage(body).ToArray();
 
         foreach (var correlationProperty in correlationPropertiesRelevantForMessage)
         {
-            var valueFromMessage = correlationProperty.ValueFromMessage(new MessageContext(transactionContext), body);
+            var valueFromMessage = correlationProperty.GetValueFromMessage(new MessageContext(transactionContext), message);
             var sagaData = await _sagaStorage.Find(sagaInvoker.Saga.GetSagaDataType(), correlationProperty.PropertyName, valueFromMessage);
 
             if (sagaData == null) continue;
@@ -146,7 +146,7 @@ public class LoadSagaDataStep : IIncomingStep
                 // if there's exacly one correlation property that points to a property on the saga data, we can set it
                 if (correlationPropertiesRelevantForMessage.Length == 1)
                 {
-                    TrySetCorrelationPropertyValue(newSagaData, correlationPropertiesRelevantForMessage[0], body, transactionContext);
+                    TrySetCorrelationPropertyValue(newSagaData, correlationPropertiesRelevantForMessage[0], message, transactionContext);
                 }
 
                 sagaInvoker.SetSagaData(newSagaData);
@@ -157,13 +157,12 @@ public class LoadSagaDataStep : IIncomingStep
             }
             else
             {
-                _log.Debug("Could not find existing saga data for message {messageLabel}", label);
-                sagaInvoker.SkipInvocation();
+                await _correlationErrorHandler.HandleCorrelationError(correlationProperties, sagaInvoker, message);
             }
         }
     }
 
-    static void TrySetCorrelationPropertyValue(ISagaData newSagaData, CorrelationProperty correlationProperty, object body, ITransactionContext transactionContext)
+    static void TrySetCorrelationPropertyValue(ISagaData newSagaData, CorrelationProperty correlationProperty, Message message, ITransactionContext transactionContext)
     {
         try
         {
@@ -173,7 +172,7 @@ public class LoadSagaDataStep : IIncomingStep
 
             if (correlationPropertyInfo == null) return;
 
-            var valueFromMessage = correlationProperty.ValueFromMessage(new MessageContext(transactionContext), body);
+            var valueFromMessage = correlationProperty.GetValueFromMessage(new MessageContext(transactionContext), message);
 
             correlationPropertyInfo.SetValue(newSagaData, valueFromMessage);
         }
