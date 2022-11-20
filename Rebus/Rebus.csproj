@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>net6.0; net7.0</TargetFrameworks>
+		<TargetFramework>net7.0</TargetFramework>
 		<LangVersion>10</LangVersion>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<Authors>mookid8000</Authors>
@@ -45,4 +45,10 @@
 		  <PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
+		<DefineConstants>HAS_TO_HASHSET;HAS_ASYNC_LOCAL</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net7.0' ">
+		<DefineConstants>HAS_TO_HASHSET;HAS_ASYNC_LOCAL</DefineConstants>
+	</PropertyGroup>
 </Project>
