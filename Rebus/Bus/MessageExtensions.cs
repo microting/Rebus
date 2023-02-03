@@ -43,6 +43,8 @@ public static class MessageExtensions
     /// </summary>
     public static void SetDeferHeaders(this Message message, DateTimeOffset approximateDeliveryTime, string destinationAddress)
     {
+        if (message == null) throw new ArgumentNullException(nameof(message));
+        if (destinationAddress == null) throw new ArgumentNullException(nameof(destinationAddress));
         InnerSetDeferHeaders(approximateDeliveryTime, message.Headers, destinationAddress);
     }
 
@@ -51,6 +53,8 @@ public static class MessageExtensions
     /// </summary>
     public static void SetDeferHeaders(this TransportMessage message, DateTimeOffset approximateDeliveryTime, string destinationAddress)
     {
+        if (message == null) throw new ArgumentNullException(nameof(message));
+        if (destinationAddress == null) throw new ArgumentNullException(nameof(destinationAddress));
         InnerSetDeferHeaders(approximateDeliveryTime, message.Headers, destinationAddress);
     }
 
