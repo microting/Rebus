@@ -129,14 +129,6 @@ class JsonSerializer : ISerializer
         var headers = transportMessage.Headers.Clone();
         return new Message(headers, bodyObject);
     }
-        Message GetMessage(TransportMessage transportMessage, Encoding bodyEncoding)
-        {
-            var bodyString = bodyEncoding.GetString(transportMessage.Body);
-            var type = GetTypeOrNull(transportMessage);
-            var bodyObject = Deserialize(bodyString, type);
-            var headers = transportMessage.Headers.Clone();
-            return new Message(headers, bodyObject);
-        }
 
         // Reverting this code, since it breaks assembly lookup for Type.GetType in net 5.0
         // Type GetTypeOrNull(TransportMessage transportMessage)

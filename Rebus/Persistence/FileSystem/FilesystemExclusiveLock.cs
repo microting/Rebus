@@ -17,32 +17,32 @@ class FileSystemExclusiveLock : IDisposable
 
         var success = false;
 
-            //Unfortunately this is the only filesystem locking api that .net exposes
-            //You can P/Invoke into better ones but thats not cross-platform
-            while (!success)
+        //Unfortunately this is the only filesystem locking api that .net exposes
+        //You can P/Invoke into better ones but thats not cross-platform
+        while (!success)
+        {
+            try
             {
-                try
-                {
-                    _fileStream = new FileStream(pathToLock, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+                _fileStream = new FileStream(pathToLock, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 
-                    // Oh and there's no async version!
-                    if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        _fileStream.Lock(0, 1);
-                    }
-
-                    success = true;
-                }
-                catch (IOException)
+                // Oh and there's no async version!
+                if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    success = false;
-                    //Have I mentioned that I hate this algorithm?
-                    //This basically just causes the thread to yield to the scheduler
-                    //we'll be back here more than 1 tick from now
-                    Thread.Sleep(TimeSpan.FromTicks(1));
+                    _fileStream.Lock(0, 1);
                 }
+
+                success = true;
+            }
+            catch (IOException)
+            {
+                success = false;
+                //Have I mentioned that I hate this algorithm?
+                //This basically just causes the thread to yield to the scheduler
+                //we'll be back here more than 1 tick from now
+                Thread.Sleep(TimeSpan.FromTicks(1));
             }
         }
+    }
 
     static void EnsureTargetFile(string pathToLock, ILog log)
     {
@@ -59,6 +59,7 @@ class FileSystemExclusiveLock : IDisposable
         {
             //Someone else did this under us
         }
+
         try
         {
             if (!File.Exists(pathToLock))
@@ -76,18 +77,18 @@ class FileSystemExclusiveLock : IDisposable
     {
         if (_disposed) return;
 
-            try
+        try
+        {
+            if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                if (Environment.Version.Major ! >= 6 && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    _fileStream.Unlock(0, 1);
-                }
-                _fileStream.Dispose();
+                _fileStream.Unlock(0, 1);
             }
-            finally
-            {
-                _disposed = true;
-            }
+
+            _fileStream.Dispose();
+        }
+        finally
+        {
+            _disposed = true;
         }
     }
 }

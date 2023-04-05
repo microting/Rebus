@@ -15,7 +15,8 @@ public static class FileSystemTransportConfigurationExtensions
     /// Configures Rebus to use the file system to transport messages. The specified <paramref name="baseDirectory"/> will be used as the base directory
     /// within which subdirectories will be created for each logical queue.
     /// </summary>
-    public static FileSystemTransportOptions UseFileSystem(this StandardConfigurer<ITransport> configurer, string baseDirectory, string inputQueueName)
+    public static FileSystemTransportOptions UseFileSystem(this StandardConfigurer<ITransport> configurer,
+        string baseDirectory, string inputQueueName)
     {
         if (baseDirectory == null) throw new ArgumentNullException(nameof(baseDirectory));
         if (inputQueueName == null) throw new ArgumentNullException(nameof(inputQueueName));
@@ -24,7 +25,8 @@ public static class FileSystemTransportConfigurationExtensions
 
         configurer
             .OtherService<FileSystemTransport>()
-            .Register(context => new FileSystemTransport(baseDirectory, inputQueueName, options, context.Get<IRebusTime>()));
+            .Register(context =>
+                new FileSystemTransport(baseDirectory, inputQueueName, options, context.Get<IRebusTime>()));
 
         configurer
             .OtherService<ITransportInspector>()
@@ -43,8 +45,8 @@ public static class FileSystemTransportConfigurationExtensions
     {
         if (baseDirectory == null) throw new ArgumentNullException(nameof(baseDirectory));
 
-            configurer.Register(context => new FileSystemTransport(baseDirectory, null, new FileSystemTransportOptions(), context.Get<IRebusTime>()));
-            OneWayClientBackdoor.ConfigureOneWayClient(configurer);
-        }
+        configurer.Register(context =>
+            new FileSystemTransport(baseDirectory, null, new FileSystemTransportOptions(), context.Get<IRebusTime>()));
+        OneWayClientBackdoor.ConfigureOneWayClient(configurer);
     }
 }
