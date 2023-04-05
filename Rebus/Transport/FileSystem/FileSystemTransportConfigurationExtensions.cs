@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Rebus.Config;
 using Rebus.Time;
 // ReSharper disable UnusedMember.Global
