@@ -149,7 +149,7 @@ namespace Rebus.Tests.Contracts.Extensions
         public static async Task<T> DequeueNext<T>(this ConcurrentQueue<T> queue, int timeoutSeconds = 5)
         {
             using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-            
+
             try
             {
                 while (true)

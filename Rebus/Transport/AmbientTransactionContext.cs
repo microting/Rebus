@@ -10,7 +10,7 @@ namespace Rebus.Transport;
 public static class AmbientTransactionContext
 {
     static readonly AsyncLocal<ITransactionContext> AsyncLocalTxContext = new AsyncLocal<ITransactionContext>();
-      
+
     /// <summary>
     /// Gets the default set function (which is using <see cref="System.Threading.AsyncLocal{T}"/> to do its thing)
     /// </summary>

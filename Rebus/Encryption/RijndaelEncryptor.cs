@@ -42,7 +42,7 @@ class RijndaelEncryptor : IAsyncEncryptor
     public async Task<EncryptedData> Encrypt(byte[] bytes)
     {
         var key = await _keyProvider.GetCurrentKey();
-        
+
         using var rijndael = new RijndaelManaged();
 
         rijndael.GenerateIV();

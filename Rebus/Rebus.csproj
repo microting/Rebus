@@ -11,6 +11,10 @@
 		<PackageDescription>Rebus is a lean service bus for .NET</PackageDescription>
 		<RepositoryUrl>https://github.com/rebus-org/Rebus</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
+		<RootNamespace>Rebus</RootNamespace>
+		<AssemblyName>Rebus</AssemblyName>
+		<Product>Rebus</Product>
+		<PackageId>Microting.Rebus</PackageId>
 
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>

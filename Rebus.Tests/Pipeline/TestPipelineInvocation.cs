@@ -67,7 +67,7 @@ public class TestPipelineInvocation
             100000 iterations took 3,4 s - that's 29047,3 iterations/s
             100000 iterations took 3,4 s - that's 29675,0 iterations/s
 
-        Change test to use a traditional for loop and await invoker.Invoke(...) instead of 
+        Change test to use a traditional for loop and await invoker.Invoke(...) instead of
         invoker.Invoke(...).Wait(); (back to DefaultPipelineInvoker):
             100000 iterations took 2,2 s - that's 44842,8 iterations/s
             100000 iterations took 2,1 s - that's 47164,8 iterations/s
@@ -122,9 +122,9 @@ public class TestPipelineInvocation
     static IPipelineInvoker GetInvoker(ThingToCheck whatToCheck, IIncomingStep[] pipeline) => whatToCheck switch
     {
         ThingToCheck.NoChange => new DefaultPipelineInvoker(new DefaultPipeline(initialIncomingSteps: pipeline)),
-            
+
         ThingToCheck.NewPipelineInvoker => new DefaultPipelineInvokerNew(new DefaultPipeline(initialIncomingSteps: pipeline)),
-            
+
         _ => throw new NotSupportedException("cannot do that yet")
     };
 
