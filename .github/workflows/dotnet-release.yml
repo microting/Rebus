@@ -8,9 +8,9 @@ jobs:
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET 7.0
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
@@ -22,12 +22,11 @@ jobs:
     - name: Test
       run: dotnet test Rebus.Tests --verbosity normal -c Release /p:WarningLevel=3 /p:EnableSourceLink=false
   build-windows:
-    needs: build-ubuntu
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET 7.0
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
     - name: Restore dependencies
@@ -41,12 +40,12 @@ jobs:
     - name: Test
       run: dotnet test Rebus.Tests --no-build --verbosity normal -c Release /p:WarningLevel=3 /p:EnableSourceLink=false
   deploy:
-    needs: build-windows
+    needs: [build-windows, build-ubuntu]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
     - name: Install dependencies
@@ -57,7 +56,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release
     - name: Pack
-      run: dotnet pack Rebus7.sln -c Release -o ./artifacts -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
+      run: dotnet pack Rebus8.sln -c Release -o ./artifacts -p:PackageVersion=${{ steps.get_version.outputs.VERSION }}
     - name: Push generated Rebus package to GitHub registry
       run: dotnet nuget push /home/runner/work/Rebus/Rebus/artifacts/Microting.Rebus.${{ steps.get_version.outputs.VERSION }}.nupkg -k ${{secrets.NUGET_SECRET_KEY}} -s https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols
     - name: Push generated Rebus.Tests.Contracts package to GitHub registry
