@@ -35,14 +35,19 @@ public class TestFileSystemBasedTransportAndCompetingConsumers : FixtureBase
 
     }
 
-    [TestCase(10, 1)]
-    [TestCase(10, 2)]
-    [TestCase(10, 5)]
-    [TestCase(100, 5)]
-    [TestCase(1000, 5)]
-    public async Task ItWorks(int messageCount, int consumers)
-    {
-        var tempDirectory = NewTempDirectory();
+        [TestCase(10, 1)]
+        [TestCase(10, 2)]
+        [TestCase(10, 5)]
+        [TestCase(100, 5)]
+        [TestCase(1000, 5)]
+        public async Task ItWorks(int messageCount, int consumers)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Since file lock currently cannot be created safely in C# on linux, this FileSystemTransport is not supported
+                return;
+            }
+            var tempDirectory = NewTempDirectory();
 
         var client = Configure.With(Using(new BuiltinHandlerActivator()))
             .Logging(l => l.Console(LogLevel.Info))
