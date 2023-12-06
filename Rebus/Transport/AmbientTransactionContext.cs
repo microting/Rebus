@@ -11,12 +11,7 @@ namespace Rebus.Transport;
 /// </summary>
 public static class AmbientTransactionContext
 {
-    static readonly AsyncLocal<ITransactionContext> AsyncLocalTxContext = new AsyncLocal<ITransactionContext>();
-
-    /// <summary>
-    /// Gets the default set function (which is using <see cref="System.Threading.AsyncLocal{T}"/> to do its thing)
-    /// </summary>
-    public static readonly Action<ITransactionContext> DefaultSetter = context => AsyncLocalTxContext.Value = context;
+    static readonly AsyncLocal<ITransactionContext> AsyncLocalTransactionContext = new();
 
     /// <summary>
     /// Gets the default set function (which is using <see cref="AsyncLocal{T}"/> to do its thing)
