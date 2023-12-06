@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Rebus.Bus;
 using Rebus.Extensions;
 using Rebus.Injection;
 using Rebus.Logging;
@@ -21,14 +22,11 @@ public class OptionsConfigurer
 
     internal OptionsConfigurer(Options options, Injectionist injectionist)
     {
-        _options = options;
-        _injectionist = injectionist;
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _injectionist = injectionist ?? throw new ArgumentNullException(nameof(injectionist));
     }
 
-    internal StandardConfigurer<TService> GetConfigurer<TService>()
-    {
-        return new StandardConfigurer<TService>(_injectionist, _options);
-    }
+    internal StandardConfigurer<TService> GetConfigurer<TService>() => new(_injectionist, _options);
 
     /// <summary>
     /// Configures the number of workers to start competing over the input queue
@@ -45,6 +43,20 @@ public class OptionsConfigurer
     public void SetBusName(string busName)
     {
         _options.OptionalBusName = busName;
+    }
+
+    /// <summary>
+    /// Provides easy access to Rebus' internal <see cref="BusLifetimeEvents"/>, enabling hooking into its lifetime events.
+    /// </summary>
+    public void Events(Action<BusLifetimeEvents> callback)
+    {
+        if (callback == null) throw new ArgumentNullException(nameof(callback));
+        Decorate(c =>
+        {
+            var busLifetimeEvents = c.Get<BusLifetimeEvents>();
+            callback(busLifetimeEvents);
+            return busLifetimeEvents;
+        });
     }
 
     /// <summary>
@@ -119,7 +131,7 @@ public class OptionsConfigurer
         // when the pipeline is resolved, we hook ourselves in and log it!
         _injectionist.ResolveRequested += serviceType =>
         {
-            if (serviceType != typeof (IPipeline)) return;
+            if (serviceType != typeof(IPipeline)) return;
 
             _injectionist.Decorate(c =>
             {

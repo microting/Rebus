@@ -11,13 +11,13 @@ using Rebus.Bus.Advanced;
 
 namespace Rebus.Transport;
 
-class TransactionContext : ITransactionContext, ICanEagerCommit
+class TransactionContext : ICanEagerCommit
 {
     // Note: C# generates thread-safe add/remove. They use a compare-and-exchange loop.
     event Func<ITransactionContext, Task> _onCommitted;
+    event Func<ITransactionContext, Task> _onRollback;
     event Func<ITransactionContext, Task> _onAck;
     event Func<ITransactionContext, Task> _onNack;
-    event Func<ITransactionContext, Task> _onRollback;
     event Action<ITransactionContext> _onDisposed;
 
     bool? _mustCommit;
@@ -67,7 +67,7 @@ class TransactionContext : ITransactionContext, ICanEagerCommit
         _mustCommit = commit;
     }
 
-    public async Task Commit()
+    public async Task CommitAsync()
     {
         if (_completed) ThrowCompletedException();
         var onCommitted = Interlocked.Exchange(ref _onCommitted, null);
@@ -137,7 +137,7 @@ class TransactionContext : ITransactionContext, ICanEagerCommit
         try
         {
             // be sure to alway always always!! invoke rollback/NACK if required to do so 
-            if (_mustCommit == false)
+            if (_mustCommit != true)
             {
                 try
                 {
@@ -174,6 +174,15 @@ class TransactionContext : ITransactionContext, ICanEagerCommit
         }
         finally
         {
+            // wipe all references rooted in the tx context to avoid accidentally capturing anything
+            Interlocked.Exchange(ref _onAck, null);
+            Interlocked.Exchange(ref _onNack, null);
+            Interlocked.Exchange(ref _onCommitted, null);
+            Interlocked.Exchange(ref _onRollback, null);
+            Interlocked.Exchange(ref _onDisposed, null);
+            Interlocked.Exchange(ref OnError, null);
+            Items.Clear();
+
             _disposed = true;
         }
     }
