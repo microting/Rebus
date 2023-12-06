@@ -18,11 +18,7 @@
 
 		<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-
-		<!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-		<!-- Optional: Include the PDB in the built .nupkg -->
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageIcon>little_rebusbus2_copy-500x500.png</PackageIcon>
