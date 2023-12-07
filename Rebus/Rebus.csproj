@@ -27,10 +27,10 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 	<ItemGroup Condition="'$(EnableSourceLink)' != 'false'">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="jetbrains.annotations" Version="2023.2.0" />
+		<PackageReference Include="jetbrains.annotations" Version="2023.3.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="system.text.json" Version="7.0.3" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
