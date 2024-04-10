@@ -22,9 +22,9 @@
 			<PackagePath></PackagePath>
 		</None>
 	</ItemGroup>
-	<ItemGroup>
+	<!--<ItemGroup>
 		<ProjectReference Include="..\Rebus\Rebus.csproj" />
-	</ItemGroup>
+	</ItemGroup>-->
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="NUnit" Version="3.14.0" />

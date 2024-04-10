@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Rebus.Bus;
 using Rebus.Exceptions;
 using Rebus.Extensions;
 using Rebus.Logging;
@@ -30,23 +29,25 @@ public class DefaultRetryStep : IRetryStep
     /// </summary>
     public const string DispatchAsFailedMessageKey = "dispatch-as-failed-message";
 
+    readonly RetryStrategySettings _retryStrategySettings;
+    readonly IExceptionInfoFactory _exceptionInfoFactory;
     readonly CancellationToken _cancellationToken;
+    readonly IFailFastChecker _failFastChecker;
     readonly IErrorHandler _errorHandler;
     readonly IErrorTracker _errorTracker;
-    readonly IFailFastChecker _failFastChecker;
-    readonly bool _secondLevelRetriesEnabled;
     readonly ILog _log;
 
     /// <summary>
     /// Creates the step
     /// </summary>
-    public DefaultRetryStep(IRebusLoggerFactory rebusLoggerFactory, IErrorHandler errorHandler, IErrorTracker errorTracker, IFailFastChecker failFastChecker, bool secondLevelRetriesEnabled, CancellationToken cancellationToken)
+    public DefaultRetryStep(IRebusLoggerFactory rebusLoggerFactory, IErrorHandler errorHandler, IErrorTracker errorTracker, IFailFastChecker failFastChecker, IExceptionInfoFactory exceptionInfoFactory, RetryStrategySettings retryStrategySettings, CancellationToken cancellationToken)
     {
         _log = rebusLoggerFactory?.GetLogger<DefaultRetryStep>() ?? throw new ArgumentNullException(nameof(rebusLoggerFactory));
         _errorHandler = errorHandler ?? throw new ArgumentNullException(nameof(errorHandler));
         _errorTracker = errorTracker ?? throw new ArgumentNullException(nameof(errorTracker));
         _failFastChecker = failFastChecker ?? throw new ArgumentNullException(nameof(failFastChecker));
-        _secondLevelRetriesEnabled = secondLevelRetriesEnabled;
+        _exceptionInfoFactory = exceptionInfoFactory ?? throw new ArgumentNullException(nameof(exceptionInfoFactory));
+        _retryStrategySettings = retryStrategySettings ?? throw new ArgumentNullException(nameof(retryStrategySettings));
         _cancellationToken = cancellationToken;
     }
 
@@ -62,28 +63,47 @@ public class DefaultRetryStep : IRetryStep
 
         if (string.IsNullOrWhiteSpace(messageId))
         {
-            transactionContext.SetResult(commit: false, ack: true);
-
-            await PassToErrorHandler(context, ExceptionInfo.FromException(new RebusApplicationException(
+            await PassToErrorHandler(context, _exceptionInfoFactory.CreateInfo(new RebusApplicationException(
                 $"Received message with empty or absent '{Headers.MessageId}' header! All messages must carry" +
                 " an ID. If no ID is present, the message cannot be tracked" +
                 " between delivery attempts, and other stuff would also be much harder to" +
                 " do - therefore, it is a requirement that messages carry an ID.")));
 
+            transactionContext.SetResult(commit: false, ack: true);
+
             return;
+        }
+
+        if (transportMessage.Headers.TryGetValue(Headers.DeliveryCount, out var value) && int.TryParse(value, out var deliveryCount))
+        {
+            var maxDeliveryAttempts = _retryStrategySettings.SecondLevelRetriesEnabled
+                ? 2 * _retryStrategySettings.MaxDeliveryAttempts
+                : _retryStrategySettings.MaxDeliveryAttempts;
+
+            if (deliveryCount > maxDeliveryAttempts)
+            {
+                var exceptions = await _errorTracker.GetExceptions(messageId);
+                var maxDescription = _retryStrategySettings.SecondLevelRetriesEnabled
+                    ? $"which is {maxDeliveryAttempts}, i.e. 2 x {_retryStrategySettings.MaxDeliveryAttempts} because 2nd level retries are enabled"
+                    : $"which is {maxDeliveryAttempts}";
+
+                var exceptionMessage = exceptions.Any()
+                    ? $"Received message with native delivery count header value = {deliveryCount} thus exceeding MAX number of delivery attempts ({maxDescription})"
+                    : $"Received message with native delivery count header value = {deliveryCount} thus exceeding MAX number of delivery attempts ({maxDescription}) – the error tracker did not provide additional information about the errors, which may/may not be because the errors happened on another Rebus instance.";
+
+                var exceptionInfo = _exceptionInfoFactory.CreateInfo(new RebusApplicationException(exceptionMessage));
+                await PassToErrorHandler(context, GetAggregateException(new[] { exceptionInfo }.Concat(exceptions)));
+                await _errorTracker.CleanUp(messageId);
+                transactionContext.SetResult(commit: false, ack: true);
+
+                return;
+            }
         }
 
         try
         {
             await next();
-
-            var manualDeadletterCommand = context.Load<ManualDeadletterCommand>();
-
-            if (manualDeadletterCommand != null)
-            {
-                await PassToErrorHandler(context, ExceptionInfo.FromException(manualDeadletterCommand.Exception));
-            }
-
+            await HandleManualDeadlettering(context);
             transactionContext.SetResult(commit: true, ack: true);
 
             if (transactionContext is ICanEagerCommit canEagerCommit)
@@ -106,9 +126,18 @@ public class DefaultRetryStep : IRetryStep
     {
         if (_failFastChecker.ShouldFailFast(messageId, exception))
         {
+            // special case - it we're supposed to fail fast, AND 2nd level retries are enabled, AND this is the first delivery attempt, try to dispatch as 2nd level:
+            if (_retryStrategySettings.SecondLevelRetriesEnabled)
+            {
+                await _errorTracker.MarkAsFinal(messageId);
+                await _errorTracker.RegisterError(messageId, exception);
+                await DispatchSecondLevelRetry(transactionContext, messageId, context, next);
+                return;
+            }
+
             await _errorTracker.MarkAsFinal(messageId);
             await _errorTracker.RegisterError(messageId, exception);
-            await PassToErrorHandler(context, GetAggregateException(new[] { ExceptionInfo.FromException(exception) }));
+            await PassToErrorHandler(context, GetAggregateException(new[] { _exceptionInfoFactory.CreateInfo(exception) }));
             await _errorTracker.CleanUp(messageId);
             transactionContext.SetResult(commit: false, ack: true);
             return;
@@ -122,27 +151,10 @@ public class DefaultRetryStep : IRetryStep
             return;
         }
 
-        if (_secondLevelRetriesEnabled)
+        if (_retryStrategySettings.SecondLevelRetriesEnabled)
         {
-            try
-            {
-                await DispatchSecondLevelRetry(transactionContext, context, next);
-                transactionContext.SetResult(commit: true, ack: true);
-                await _errorTracker.CleanUp(messageId);
-                return;
-            }
-            catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
-            {
-                _log.Info("Dispatch of message with ID {messageId} was cancelled", messageId);
-            }
-            catch (Exception secondLevelException)
-            {
-                var exceptions = await _errorTracker.GetExceptions(messageId);
-                await PassToErrorHandler(context, GetAggregateException(exceptions.Concat(new[] { ExceptionInfo.FromException(secondLevelException), })));
-                await _errorTracker.CleanUp(messageId);
-                transactionContext.SetResult(commit: false, ack: true);
-                return;
-            }
+            await DispatchSecondLevelRetry(transactionContext, messageId, context, next);
+            return;
         }
 
         var aggregateException = GetAggregateException(await _errorTracker.GetExceptions(messageId));
@@ -150,6 +162,47 @@ public class DefaultRetryStep : IRetryStep
         await PassToErrorHandler(context, aggregateException);
         await _errorTracker.CleanUp(messageId);
         transactionContext.SetResult(commit: false, ack: true);
+    }
+
+    async Task DispatchSecondLevelRetry(ITransactionContext transactionContext, string messageId, IncomingStepContext context, Func<Task> next)
+    {
+        try
+        {
+            await DispatchSecondLevelRetry(transactionContext, context, next);
+            await HandleManualDeadlettering(context);
+            transactionContext.SetResult(commit: true, ack: true);
+            await _errorTracker.CleanUp(messageId);
+        }
+        catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
+        {
+            _log.Info("Dispatch of message with ID {messageId} was cancelled", messageId);
+        }
+        catch (Exception secondLevelException)
+        {
+            if (_failFastChecker.ShouldFailFast(messageId, secondLevelException))
+            {
+                await _errorTracker.MarkAsFinal(messageId);
+                await _errorTracker.RegisterError(messageId, secondLevelException);
+                await PassToErrorHandler(context, GetAggregateException(new[] { _exceptionInfoFactory.CreateInfo(secondLevelException) }));
+                await _errorTracker.CleanUp(messageId);
+                transactionContext.SetResult(commit: false, ack: true);
+                return;
+            }
+
+            var exceptions = await _errorTracker.GetExceptions(messageId);
+            await PassToErrorHandler(context, GetAggregateException(exceptions.Concat(new[] { _exceptionInfoFactory.CreateInfo(secondLevelException), })));
+            await _errorTracker.CleanUp(messageId);
+            transactionContext.SetResult(commit: false, ack: true);
+        }
+    }
+
+    async Task HandleManualDeadlettering(IncomingStepContext context)
+    {
+        var manualDeadletterCommand = context.Load<ManualDeadletterCommand>();
+
+        if (manualDeadletterCommand == null) return;
+
+        await PassToErrorHandler(context, ExceptionInfo.FromException(manualDeadletterCommand.Exception));
     }
 
     static async Task DispatchSecondLevelRetry(ITransactionContext transactionContext, StepContext context, Func<Task> next)
@@ -167,12 +220,10 @@ public class DefaultRetryStep : IRetryStep
 
     async Task PassToErrorHandler(StepContext context, ExceptionInfo exception)
     {
-        var originalTransportMessage = context.Load<OriginalTransportMessage>() ?? throw new RebusApplicationException("Could not find the original transport message in the current incoming step context");
-        var transportMessage = originalTransportMessage.TransportMessage.Clone();
-
-        using var scope = new RebusTransactionScope();
-        await _errorHandler.HandlePoisonMessage(transportMessage, scope.TransactionContext, exception);
-        await scope.CompleteAsync();
+        var transactionContext = context.Load<ITransactionContext>() ?? throw new RebusApplicationException("Could not find a transaction context in the current incoming step context");
+        var transportMessage = context.Load<TransportMessage>() ?? throw new RebusApplicationException("Could not find a transport message in the current incoming step context");
+        
+        await _errorHandler.HandlePoisonMessage(transportMessage, transactionContext, exception);
     }
 
     static ExceptionInfo GetAggregateException(IEnumerable<ExceptionInfo> exceptions)

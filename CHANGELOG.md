@@ -1110,6 +1110,30 @@
 ## 8.0.2
 * Make `IsExternalInit` internal to avoid interfering with other tools that happen to be über sensitive
  
+## 8.0.3
+* Fix bug that prevented manually dead-lettering messages from a second-level retry handler
+
+## 8.1.0
+* Introduce IExceptionInfoFactory to enable keeping real `Exception` objects alongside exception details when tracking errors purely in-mem - thanks [ladenedge]
+
+## 8.2.2
+* Add optional `rbs2-delivery-count` header, which may be provided by transports that are capable of counting deliveries natively
+
+## 8.2.4
+* Fix behavior of fail-fast combined with 2nd level retries to be like before (i.e. failing fast will immediately trigger 2nd level retry)
+
+## 8.3.0
+* Alter how the message transaction context is managed when dead-lettering (i.e. the failing message context is now passed to `IErrorHandler` - it is now up to the error handler to create its own scope if it so desires) - thanks [AndreaCuneo]
+
+## 8.4.0
+* Add .NET 6 as compilation target to enable stripping dependencies that are included in the BCL - thanks [thompson-tomo]
+ 
+## 8.4.1
+* Fix bug that would cause the decryption step to try to decrypt un-encrypted contents when using encryption together with 2nd level retries
+
+## 8.4.2
+* Fix bug that would prevent using a default return address on a one-way client
+
 ---
 
 [AndreaCuneo]: https://github.com/AndreaCuneo
@@ -1139,6 +1163,7 @@
 [kendallb]: https://github.com/kendallb
 [kevbite]: https://github.com/kevbite
 [krivin]: https://github.com/krivin
+[ladenedge]: https://github.com/ladenedge
 [Liero]: https://github.com/Liero
 [madstt]: https://github.com/madstt
 [maeserichar]: https://github.com/maeserichar
@@ -1168,6 +1193,7 @@
 [Rzpeg]: https://github.com/Rzpeg
 [seankearon]: https://github.com/seankearon
 [SvenVandenbrande]: https://github.com/SvenVandenbrande
+[thompson-tomo]: https://github.com/thompson-tomo
 [tiipe]: https://github.com/tiipe
 [tobiaxor]: https://github.com/tobiaxor
 [torangel]: https://github.com/torangel
