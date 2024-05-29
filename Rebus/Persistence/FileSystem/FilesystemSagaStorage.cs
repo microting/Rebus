@@ -42,6 +42,7 @@ public class FileSystemSagaStorage : ISagaStorage
             if (propertyName == IdPropertyName)
             {
                 if (propertyValue == null) return null;
+                if (ReferenceEquals(propertyValue, "")) return null;
 
                 var guidPropertyValue = GetGuidValue(propertyValue);
                 var sagaData = index.FindById(guidPropertyValue);
