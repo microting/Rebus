@@ -6,6 +6,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ClassLibraryWithCustomName\ClassLibraryWithCustomName.csproj" />
+		<ProjectReference Include="..\Rebus.Tests.Contracts\Rebus.Tests.Contracts.csproj" />
 		<ProjectReference Include="..\Rebus\Rebus.csproj" />
 	</ItemGroup>
 	<ItemGroup>
