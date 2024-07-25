@@ -5,7 +5,7 @@
 		<LangVersion>12</LangVersion>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\Rebus.Tests.Contracts\Rebus.Tests.Contracts.csproj" />
+		<ProjectReference Include="..\ClassLibraryWithCustomName\ClassLibraryWithCustomName.csproj" />
 		<ProjectReference Include="..\Rebus\Rebus.csproj" />
 	</ItemGroup>
 	<ItemGroup>
