@@ -12,7 +12,7 @@ using Rebus.Workers.ThreadPoolBased;
 
 namespace Rebus.Workers.TplBased;
 
-class TplWorker : IWorker
+sealed class TplWorker : IWorker
 {
     readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
     readonly ManualResetEvent _workerStopped = new ManualResetEvent(false);
@@ -192,5 +192,7 @@ class TplWorker : IWorker
             _log.Warn("The {workerName} worker did not shut down within {shutdownTimeoutSeconds} seconds!",
                 Name, _options.WorkerShutdownTimeout.TotalSeconds);
         }
+        _workerStopped.Dispose();
+        _cancellationTokenSource.Dispose();
     }
 }

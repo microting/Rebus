@@ -11,7 +11,7 @@ namespace Rebus.Serialization.Json;
 /// <summary>
 /// Implementation of <see cref="ISerializer"/> that uses .NET System.Text.Json internally
 /// </summary>
-class SystemTextJsonSerializer : ISerializer
+sealed class SystemTextJsonSerializer : ISerializer
 {
     static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new()
     {
@@ -51,14 +51,15 @@ class SystemTextJsonSerializer : ISerializer
     public Task<TransportMessage> Serialize(Message message)
     {
         var body = message.Body ?? throw new ArgumentException($"Sorry, but the System.Text.Json-based message serializer needs a message body to work (i.e. it's not capable of serializing NULL)");
-        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, body.GetType(), _options);
+        var bodyType = body.GetType();
+        var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, bodyType, _options);
         var headers = message.Headers.Clone();
 
         headers[Headers.ContentType] = _encodingHeaderValue;
 
         if (!headers.ContainsKey(Headers.Type))
         {
-            headers[Headers.Type] = _messageTypeNameConvention.GetTypeName(body.GetType());
+            headers[Headers.Type] = _messageTypeNameConvention.GetTypeName(bodyType);
         }
 
         return Task.FromResult(new TransportMessage(headers, bytes));
@@ -118,9 +119,19 @@ class SystemTextJsonSerializer : ISerializer
 
     Message GetMessage(TransportMessage transportMessage, Encoding bodyEncoding)
     {
-        var bodyString = bodyEncoding.GetString(transportMessage.Body);
         var type = GetTypeOrNull(transportMessage);
-        var bodyObject = Deserialize(bodyString, type);
+        object bodyObject;
+        if (Equals(bodyEncoding, Encoding.UTF8))
+        {
+            // we can avoid the intermediate string representation (UTF16 = 2x the size of the bytes)
+            // and deserialize directly from the bytes
+            bodyObject = DeserializeUtf8(transportMessage.Body, type);
+        }
+        else
+        {
+            var bodyString = bodyEncoding.GetString(transportMessage.Body);
+            bodyObject = Deserialize(bodyString, type);
+        }
         var headers = transportMessage.Headers.Clone();
         return new Message(headers, bodyObject);
     }
@@ -132,6 +143,23 @@ class SystemTextJsonSerializer : ISerializer
         var type = _messageTypeNameConvention.GetType(typeName) ?? throw new FormatException($"Could not get .NET type named '{typeName}'");
 
         return type;
+    }
+
+    object DeserializeUtf8(byte[] body, Type type)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize(body, type, _options);
+        }
+        catch (Exception exception)
+        {
+            if (body.Length > 32768)
+            {
+                throw new FormatException($"Could not deserialize JSON text (original length: {body.Length}): '{Limit(Encoding.UTF8.GetString(body), 5000)}'", exception);
+            }
+
+            throw new FormatException($"Could not deserialize JSON text: '{Encoding.UTF8.GetString(body)}'", exception);
+        }
     }
 
     object Deserialize(string bodyString, Type type)

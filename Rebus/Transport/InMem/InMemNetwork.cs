@@ -92,7 +92,7 @@ public class InMemNetwork
         {
             var messageId = msg.Headers.GetValueOrNull(Headers.MessageId) ?? "<no message ID>";
 
-            _log.Info($"{messageId} ---> {destinationAddress} ({_networkId})");
+            _log.Info("{messageId} ---> {destinationAddress} ({_networkId})", messageId, destinationAddress, _networkId);
         }
 
         _queues.GetOrAdd(destinationAddress, _ => new ConcurrentQueue<InMemTransportMessage>()).Enqueue(msg);
@@ -186,10 +186,8 @@ public class InMemNetwork
 
     static bool MessageIsExpired(InMemTransportMessage message)
     {
-        var headers = message.Headers;
-        if (!headers.ContainsKey(Headers.TimeToBeReceived)) return false;
+        if (!message.Headers.TryGetValue(Headers.TimeToBeReceived, out var timeToBeReceived)) return false;
 
-        var timeToBeReceived = headers[Headers.TimeToBeReceived];
         var maximumAge = TimeSpan.Parse(timeToBeReceived);
 
         return message.Age > maximumAge;

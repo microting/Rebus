@@ -41,9 +41,9 @@ public abstract class Saga
             });
     }
 
-    internal IEnumerable<CorrelationProperty> GetCorrelationProperties()
+    internal static IEnumerable<CorrelationProperty> GetCorrelationProperties()
     {
-        return new List<CorrelationProperty>();
+        return Array.Empty<CorrelationProperty>();
     }
 
     internal abstract IEnumerable<CorrelationProperty> GenerateCorrelationProperties();
@@ -126,7 +126,7 @@ public abstract class Saga<TSagaData> : Saga where TSagaData : ISagaData, new()
     {
     }
 
-    class CorrelationConfiguration : ICorrelationConfig<TSagaData>
+    sealed class CorrelationConfiguration : ICorrelationConfig<TSagaData>
     {
         readonly Type _sagaType;
 

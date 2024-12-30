@@ -12,7 +12,7 @@ using Rebus.Transport;
 
 namespace Rebus.Workers.ThreadPoolBased;
 
-class ThreadPoolWorker : IWorker
+sealed class ThreadPoolWorker : IWorker
 {
     readonly CancellationTokenSource _cancellationTokenSource = new();
     readonly ParallelOperationsManager _parallelOperationsManager;
@@ -204,5 +204,6 @@ class ThreadPoolWorker : IWorker
             _log.Warn("The {workerName} worker did not shut down within {shutdownTimeoutSeconds} seconds!",
                 Name, _options.WorkerShutdownTimeout.TotalSeconds);
         }
+        _workerShutDown.Dispose();
     }
 }

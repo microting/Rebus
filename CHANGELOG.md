@@ -1137,6 +1137,21 @@
 ## 8.4.3
 * Fix bug in `EnforceExclusiveSagaAccessIncomingStepBase` that would cause lock buckets to be picked in an unstable way (in modern .NET, at least). Now using custom-implemented stable hash based on MD5
 
+## 8.4.4
+* Flatten hierarchy when looking up the dispatch method to better enable extension/alteration by inheritance - thanks [X509Whatever]
+
+## 8.5.0
+* Make a bunch of internal tweaks and improvements to improve performance across the board - thanks [Henr1k80]
+
+## 8.6.0
+* Another bunch of internal tweaks and improvements to improve performance across the board - thanks [Henr1k80]
+
+## 8.6.1
+* Fix regression that caused encrypted messages to end up unencrypted when dead-lettered
+
+## 8.7.0
+* Add additional compile targets and bump System.Text.Json dependency to at least 8.0.5 because almost all the previous versions have weaknesses
+
 ---
 
 [AndreaCuneo]: https://github.com/AndreaCuneo
@@ -1157,6 +1172,7 @@
 [Hangsolow]: https://github.com/Hangsolow
 [heberop]: https://github.com/heberop
 [hellfirehd]: https://github.com/hellfirehd
+[Henr1k80]: https://github.com/Henr1k80
 [jasperdk]: https://github.com/jasperdk
 [jeffreyabecker]: https://github.com/jeffreyabecker
 [jods4]: https://github.com/jods4
@@ -1201,6 +1217,7 @@
 [tobiaxor]: https://github.com/tobiaxor
 [torangel]: https://github.com/torangel
 [trevorreeves]: https://github.com/trevorreeves
+[X509Whatever]: https://github.com/X509Whatever
 [xenoputtss]: https://github.com/xenoputtss
 [zabulus]: https://github.com/zabulus
 [zlepper]: https://github.com/zlepper

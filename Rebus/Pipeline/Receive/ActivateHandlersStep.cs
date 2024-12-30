@@ -37,7 +37,7 @@ public class ActivateHandlersStep : IIncomingStep
         var message = context.Load<Message>();
         var body = message.Body;
         var messageType = body.GetType();
-        var methodToInvoke = _dispatchMethods.GetOrAdd(messageType, _ => GetDispatchMethod(messageType));
+        var methodToInvoke = _dispatchMethods.GetOrAdd(messageType, GetDispatchMethod);
 
         var args = new[] { body, transactionContext, message };
         var handlerInvokers = await (Task<HandlerInvokers>)methodToInvoke.Invoke(this, args);
@@ -47,13 +47,15 @@ public class ActivateHandlersStep : IIncomingStep
         await next();
     }
 
-    async Task<HandlerInvokers> GetHandlerInvokers<TMessage>(TMessage message, ITransactionContext transactionContext, Message logicalMessage)
+    /// <summary>
+    /// Returns an instance of <see cref="HandlerInvokers"/> containing the list of handlers that will process this message.
+    /// </summary>
+    protected virtual async Task<HandlerInvokers> GetHandlerInvokers<TMessage>(TMessage message, ITransactionContext transactionContext, Message logicalMessage)
     {
         var handlers = await _handlerActivator.GetHandlers(message, transactionContext);
 
         var listOfHandlerInvokers = handlers
-            .Select(handler => CreateHandlerInvoker(handler, message, transactionContext, logicalMessage))
-            .ToList();
+            .Select(handler => CreateHandlerInvoker(handler, message, transactionContext, logicalMessage));
 
         return new HandlerInvokers(logicalMessage, listOfHandlerInvokers);
     }
@@ -70,7 +72,7 @@ public class ActivateHandlersStep : IIncomingStep
     {
         const string methodName = nameof(GetHandlerInvokers);
 
-        var genericDispatchMethod = GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+        var genericDispatchMethod = GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
                                     ?? throw new ArgumentException($"Could not find the {methodName} method?!");
 
         return genericDispatchMethod.MakeGenericMethod(messageType);
