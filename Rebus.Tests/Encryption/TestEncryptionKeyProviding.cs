@@ -16,13 +16,16 @@ public class TestEncryptionKeyProviding
     {
         var provider = new FixedRijndaelEncryptionKeyProvider(EncryptionKey);
         var provided = await provider.GetCurrentKey();
-        Assert.AreEqual(Convert.ToBase64String(provided.Key), EncryptionKey);
-        Assert.IsNotEmpty(provided.Identifier);
+
+        Assert.That(Convert.ToBase64String(provided.Key), Is.EqualTo(EncryptionKey));
+        Assert.That(provided.Identifier, Is.Not.Null.And.Not.Empty);
 
         var specificProvided = await provider.GetSpecificKey(provided.Identifier);
-        Assert.AreEqual(Convert.ToBase64String(specificProvided.Key), EncryptionKey);
-        Assert.AreEqual(specificProvided.Identifier,provided.Identifier);
+
+        Assert.That(Convert.ToBase64String(specificProvided.Key), Is.EqualTo(EncryptionKey));
+        Assert.That(specificProvided.Identifier, Is.EqualTo(provided.Identifier));
     }
+
 
     [Test]
     public void ProviderOnlyToleratesValidKey()
