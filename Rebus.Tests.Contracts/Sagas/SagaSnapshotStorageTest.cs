@@ -128,7 +128,9 @@ as part of this:
 
         Assert.That(allSnapshots.Count, Is.EqualTo(3));
 
-        Assert.That(allSnapshots.All(s => s.SagaData.Revision == 0), "Not all revisions were initial!: {0}", allSnapshots.Select(s => s.SagaData.Revision));
+        Assert.That(allSnapshots, Has.All.Matches<SagaDataSnapshot>(s => s.SagaData.Revision == 0),
+            $"Not all revisions were initial! Revisions: {string.Join(", ", allSnapshots.Select(s => s.SagaData.Revision))}");
+
 
         Assert.That(allSnapshots.Select(s => s.SagaData.Id).Distinct().Count(), Is.EqualTo(3), "Expected three different saga IDs!");
     }
