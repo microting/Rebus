@@ -1,9 +1,20 @@
 version: 2
 updates:
 - package-ecosystem: nuget
-  directory: "/"
+  directory: "/Rebus"
   schedule:
     interval: daily
     time: "04:00"
-  open-pull-requests-limit: 10
+  target-branch: master
+- package-ecosystem: nuget
+  directory: "/Rebus.Tests"
+  schedule:
+    interval: daily
+    time: "04:00"
+  target-branch: master
+- package-ecosystem: nuget
+  directory: "/Rebus.Tests.Contracts"
+  schedule:
+    interval: daily
+    time: "04:00"
   target-branch: master
