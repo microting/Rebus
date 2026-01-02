@@ -142,7 +142,7 @@ class TransactionContext : ICanEagerCommit
                 try
                 {
                     var onRollBack = Interlocked.Exchange(ref _onRollback, null);
-                    AsyncHelpers.RunSync(() => InvokeAsync(onRollBack));
+                    Rebus.Bus.Advanced.AsyncHelpers.RunSync(() => InvokeAsync(onRollBack));
                 }
                 catch (Exception exception)
                 {
@@ -155,7 +155,7 @@ class TransactionContext : ICanEagerCommit
                 try
                 {
                     var onNack = Interlocked.Exchange(ref _onNack, null);
-                    AsyncHelpers.RunSync(() => InvokeAsync(onNack));
+                    Rebus.Bus.Advanced.AsyncHelpers.RunSync(() => InvokeAsync(onNack));
                 }
                 catch (Exception exception)
                 {
