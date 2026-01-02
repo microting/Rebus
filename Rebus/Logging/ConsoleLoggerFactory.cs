@@ -122,8 +122,8 @@ public class ConsoleLoggerFactory : AbstractRebusLoggerFactory
             _factory = factory;
 
             _logLineFormatString = showTimestamps
-                ? "[{2}] {0} {1} ({3}): {4}"
-                : "[{2}] {1} ({3}): {4}";
+                ? "{2}: {0} {1} ({3}): {4}"
+                : "{2}: {1} ({3}): {4}";
         }
 
         public void Debug(string message, params object[] objs)
@@ -181,13 +181,13 @@ public class ConsoleLoggerFactory : AbstractRebusLoggerFactory
             switch (level)
             {
                 case LogLevel.Debug:
-                    return "DBG";
+                    return "dbug";
                 case LogLevel.Info:
-                    return "INF";
+                    return "info";
                 case LogLevel.Warn:
-                    return "WRN";
+                    return "warn";
                 case LogLevel.Error:
-                    return "ERR";
+                    return "fail";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(level));
             }
