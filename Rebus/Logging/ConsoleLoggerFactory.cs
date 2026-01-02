@@ -181,13 +181,13 @@ public class ConsoleLoggerFactory : AbstractRebusLoggerFactory
             switch (level)
             {
                 case LogLevel.Debug:
-                    return "DBG";
+                    return "dbug";
                 case LogLevel.Info:
-                    return "INF";
+                    return "info";
                 case LogLevel.Warn:
-                    return "WRN";
+                    return "warn";
                 case LogLevel.Error:
-                    return "ERR";
+                    return "fail";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(level));
             }
