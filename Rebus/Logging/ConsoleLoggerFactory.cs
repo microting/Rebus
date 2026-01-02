@@ -122,8 +122,8 @@ public class ConsoleLoggerFactory : AbstractRebusLoggerFactory
             _factory = factory;
 
             _logLineFormatString = showTimestamps
-                ? "[{2}] {0} {1} ({3}): {4}"
-                : "[{2}] {1} ({3}): {4}";
+                ? "{2}: {0} {1} ({3}): {4}"
+                : "{2}: {1} ({3}): {4}";
         }
 
         public void Debug(string message, params object[] objs)
