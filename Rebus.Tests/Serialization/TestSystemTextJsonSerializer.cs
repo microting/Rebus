@@ -98,18 +98,18 @@ Made 434064 iterations in 00:00:01
     }
 
     [Test]
-    public void CheckErrorWhenContentTypeHeaderIsMissing()
+    public async Task CheckErrorWhenContentTypeHeaderIsMissing()
     {
         var jsonBody = Encoding.UTF8.GetBytes("{}");
         var headersWithEmptyContentType = new Dictionary<string, string> { [Headers.ContentType] = null };
         var headersWithoutContentType = new Dictionary<string, string>();
 
-        var ex1 = Assert.ThrowsAsync<KeyNotFoundException>(() => _serializer.Deserialize(
+        var ex1 = await Assert.ThrowsAsync<KeyNotFoundException>(() => _serializer.Deserialize(
             new TransportMessage(headersWithoutContentType, jsonBody)));
 
         Console.WriteLine(ex1);
 
-        var ex2 = Assert.ThrowsAsync<FormatException>(() => _serializer.Deserialize(
+        var ex2 = await Assert.ThrowsAsync<FormatException>(() => _serializer.Deserialize(
             new TransportMessage(headersWithEmptyContentType, jsonBody)));
 
         Console.WriteLine(ex2);

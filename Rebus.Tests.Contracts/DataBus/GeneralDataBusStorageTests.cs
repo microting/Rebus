@@ -120,7 +120,7 @@ namespace Rebus.Tests.Contracts.DataBus
 
             await _management.Delete(knownId);
 
-            var exception = Assert.ThrowsAsync<ArgumentException>(() => _storage.Read(knownId),
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() => _storage.Read(knownId),
                 $"Expected an ArgumentException, because the attachment with ID {knownId} was deleted");
 
             Console.WriteLine(exception);
@@ -160,9 +160,9 @@ namespace Rebus.Tests.Contracts.DataBus
         }
 
         [Test]
-        public void ThrowsWhenLoadingNonExistentId()
+        public async Task ThrowsWhenLoadingNonExistentId()
         {
-            var exception = Assert.ThrowsAsync<ArgumentException>(async () =>
+            var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
                 var result = await _storage.Read(Guid.NewGuid().ToString());
             });
